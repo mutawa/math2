@@ -3,15 +3,15 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const COLUMNS = 5;
 const WIDTH = 450;
-const HEIGHT = 900;
+const HEIGHT = 800;
 const COL_WIDTH = WIDTH / COLUMNS;
 const SHIP_Y = HEIGHT - 110;
 const SPAWN_Y = -20; // Constant for new UFO starting position
 const NUMBER_OF_CORRECT_IN_SEQUENCE_ANSWERS_TO_GAIN_LIFE = 4;
 const NUMBER_OF_CORRECT_TO_WIN = 100;
 
-const MAX_LIVES = 6;
-const STARTING_LIVES = 3;
+const MAX_LIVES = 8;
+const STARTING_LIVES = 4;
 
 const LEVEL_NAMES = [
   "الأول",
@@ -25,22 +25,24 @@ const LEVEL_NAMES = [
   "التاسع",
   "العاشر",
 ];
+// import.meta.env.BASE_URL will be "./math/space/" based on your config
+const baseUrl = import.meta.env.BASE_URL;
 
 // Define these outside the component or inside a useMemo to prevent re-creation
 const playSuccessSound = () => {
-  const audio = new Audio("/sounds/correct.mp3"); // Path to your file
+  const audio = new Audio(`${baseUrl}/sounds/correct.mp3`); // Path to your file
   audio.volume = 0.5;
   audio.play().catch((e) => console.log("Audio play blocked by browser"));
 };
 
 const playLifeSound = () => {
-  const audio = new Audio("/sounds/life.mp3"); // Path to your file
+  const audio = new Audio(`${baseUrl}/sounds/life.mp3`); // Path to your file
   audio.volume = 0.5;
   audio.play().catch((e) => console.log("Audio play blocked by browser"));
 };
 
 const playErrorSound = () => {
-  const audio = new Audio("/sounds/wrong.mp3");
+  const audio = new Audio(`${baseUrl}/sounds/wrong.mp3`);
   audio.volume = 0.4;
   audio.play().catch((e) => console.log("Audio play blocked by browser"));
 };
@@ -426,7 +428,7 @@ export default function MathInvadersSafeShuffle() {
                 style={{ cursor: isGameOver ? "default" : "pointer" }}
               >
                 <image
-                  href={`/images/${ufo.spriteIndex}.png`}
+                  href={`${baseUrl}/images/${ufo.spriteIndex}.png`}
                   x={ufo.col * COL_WIDTH + 9}
                   y={-60}
                   width="70"

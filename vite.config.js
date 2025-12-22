@@ -3,6 +3,6 @@ import react from "@vitejs/plugin-react";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "./fun/space/",
+  base: "/fun/math/space3/",
   plugins: [react()],
 });
