@@ -53,10 +53,6 @@ export default function MathInvadersSafeShuffle() {
     const p = props ?? problems;
     const cols = Math.min(p.length, MAX_NUMBER_OF_COLUMNS);
 
-    console.log(
-      `Resetting UFOs for columns: ${cols}, problems length: ${p.length}`
-    );
-
     setUfos(
       p.slice(0, cols).map((prob, i) => ({
         id: prob.id,
@@ -345,6 +341,7 @@ export default function MathInvadersSafeShuffle() {
                 isShaking={wrongHitId === ufo.id}
                 isGameOver={isGameOver}
                 colWidth={colWidth}
+                handleInteraction={handleInteraction}
               />
             ))}
           </AnimatePresence>

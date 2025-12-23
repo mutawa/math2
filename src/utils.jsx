@@ -29,8 +29,6 @@ const playSound = (name) => {
 const createProblem = (level) => {
   const operation = OPERATIONS[Math.floor(Math.random() * OPERATIONS.length)];
 
-  console.log({ operation });
-
   const minVal = STARTING_OPERAND_MIN + (level - 1) * MIN_INCREMENT_PER_LEVEL;
   const maxVal = STARTING_OPERAND_MAX + (level - 1) * MAX_INCREMENT_PER_LEVEL;
 

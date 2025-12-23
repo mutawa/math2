@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 const baseUrl = import.meta.env.BASE_URL;
 import { convertToArabicNumerals } from "./utils";
 
-const Ufo = ({ ufo, isShaking, isGameOver, colWidth }) => {
+const Ufo = ({ ufo, isShaking, isGameOver, colWidth, handleInteraction }) => {
   const { y, col, spriteIndex, val } = ufo;
   return (
     <motion.g
