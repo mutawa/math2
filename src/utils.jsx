@@ -5,6 +5,8 @@ const {
   STARTING_OPERAND_MAX,
   MAX_INCREMENT_PER_LEVEL,
   MIN_INCREMENT_PER_LEVEL,
+  OPERATIONS,
+  ALLOW_NEGATIVE_ANSWERS,
 } = __GAME__CONFIG__;
 
 function convertToArabicNumerals(number) {
@@ -25,6 +27,10 @@ const playSound = (name) => {
 };
 
 const createProblem = (level) => {
+  const operation = OPERATIONS[Math.floor(Math.random() * OPERATIONS.length)];
+
+  console.log({ operation });
+
   const minVal = STARTING_OPERAND_MIN + (level - 1) * MIN_INCREMENT_PER_LEVEL;
   const maxVal = STARTING_OPERAND_MAX + (level - 1) * MAX_INCREMENT_PER_LEVEL;
 
@@ -34,6 +40,51 @@ const createProblem = (level) => {
 
   const a1 = convertToArabicNumerals(n1);
   const a2 = convertToArabicNumerals(n2);
+  const id = Math.random();
+
+  switch (operation) {
+    case "+":
+      return {
+        q: `${a1} + ${a2}`,
+        a: n1 + n2,
+        id,
+      };
+    case "-":
+      if (ALLOW_NEGATIVE_ANSWERS) {
+        return {
+          q: `${a1} - ${a2}`,
+          a: n1 - n2,
+          id,
+        };
+      } else {
+        let o1 = n1;
+        let o2 = n2;
+        const swap = n1 < n2;
+        if (swap) {
+          o1 = n2;
+          o2 = n1;
+        }
+        return {
+          q: `${convertToArabicNumerals(o1)} - ${convertToArabicNumerals(o2)}`,
+          a: o1 - o2,
+          id,
+        };
+      }
+
+    case "*":
+      return {
+        q: `${a1} × ${a2}`,
+        a: n1 * n2,
+        id,
+      };
+    case "/":
+      const prod = n1 * n2;
+      return {
+        q: `${convertToArabicNumerals(prod)} ÷ ${a1}`,
+        a: n2,
+        id,
+      };
+  }
 
   return {
     q: `${a1} × ${a2}`,

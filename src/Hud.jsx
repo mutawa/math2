@@ -29,9 +29,6 @@ const Hud = ({
       <div style={{ color: "white" }}>
         {" "}
         إجابات صحيحة {convertToArabicNumerals(score)}
-        {"("}
-        {columns}
-        {")"}
       </div>
       <div
         style={{
@@ -51,7 +48,6 @@ const Hud = ({
           {Array.from({
             length: NUMBER_OF_CORRECT_IN_SEQUENCE_ANSWERS_TO_GAIN_LIFE,
           }).map((_, i) => (
-            // bar indicators for correct answers in sequence
             <span
               key={i}
               style={{

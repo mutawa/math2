@@ -4,7 +4,6 @@ import Ufo from "./Ufo";
 import Hud from "./Hud";
 
 import { playSound, createProblem } from "./utils";
-import { col } from "framer-motion/client";
 
 const {
   INITIAL_COLUMNS,
@@ -48,6 +47,7 @@ export default function MathInvadersSafeShuffle() {
   const [wrongHitId, setWrongHitId] = useState(null);
   const [isGameOver, setIsGameOver] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
+  const [stars, setStars] = useState([]);
 
   const resetUfos = ({ props = null }) => {
     const p = props ?? problems;
@@ -72,6 +72,16 @@ export default function MathInvadersSafeShuffle() {
     const initialProblems = Array.from({ length: columns }).map(() =>
       createProblem(currentLevel)
     );
+    setStars(
+      Array.from({ length: 50 }).map(() => ({
+        x: Math.random() * WIDTH,
+        y: Math.random() * HEIGHT,
+        r: Math.random() * 1.5,
+        opacity: Math.random(),
+        duration: `${5 + Math.random() * 5}s`,
+      }))
+    );
+    setAttackInterval(INITIAL_ATTACK_INTERVAL);
     setLives(STARTING_LIVES);
     setCorrectInSequence(0);
 
@@ -121,7 +131,10 @@ export default function MathInvadersSafeShuffle() {
     const interval = setInterval(() => {
       setUfos((prev) => {
         const nextUfos = prev.map((u) => ({ ...u, y: u.y + ufoSpeed }));
-        if (nextUfos.some((u) => u.y >= SHIP_Y)) setIsGameOver(true);
+        if (nextUfos.some((u) => u.y >= SHIP_Y)) {
+          playSound("gameover");
+          setIsGameOver(true);
+        }
         return nextUfos;
       });
     }, attackInterval);
@@ -189,6 +202,7 @@ export default function MathInvadersSafeShuffle() {
         setScore(newScore);
 
         if (newScore >= NUMBER_OF_CORRECT_TO_WIN) {
+          playSound("victory");
           alert("مبروك! لقد فزت باللعبة!");
           setIsGameOver(true);
           return;
@@ -240,6 +254,7 @@ export default function MathInvadersSafeShuffle() {
       setLives(newLives);
 
       if (newLives <= 0) {
+        playSound("gameover");
         setIsGameOver(true);
       }
 
@@ -290,6 +305,25 @@ export default function MathInvadersSafeShuffle() {
             overflow: "hidden",
           }}
         >
+          {/* stars moving downwards */}
+          {stars.map((star, i) => (
+            <circle
+              key={`star-${i}`}
+              cx={star.x}
+              cy={star.y}
+              r={star.r}
+              fill="white"
+              opacity={star.opacity}
+            >
+              <animate
+                attributeName="cy"
+                from={star.y}
+                to={star.y + HEIGHT}
+                dur={star.duration}
+                repeatCount="indefinite"
+              />
+            </circle>
+          ))}
           {!isGameOver &&
             Array.from({ length: columns }).map((_, i) => (
               <rect
