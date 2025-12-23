@@ -77,6 +77,7 @@ export default function MathInvadersSafeShuffle() {
         duration: `${5 + Math.random() * 5}s`,
       }))
     );
+    setColumns(INITIAL_COLUMNS);
     setAttackInterval(INITIAL_ATTACK_INTERVAL);
     setLives(STARTING_LIVES);
     setCorrectInSequence(0);

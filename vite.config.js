@@ -15,7 +15,9 @@ export default defineConfig({
       MAX_NUMBER_OF_COLUMNS: 7,
       WIDTH,
       HEIGHT,
-      OPERATIONS: ["+", "*", "-", "/"],
+      // OPERATIONS: ["+", "*", "-", "/"],
+      OPERATIONS: ["+", "*", "-"],
+
       ALLOW_NEGATIVE_ANSWERS: false,
 
       SHIP_Y: HEIGHT - 110,
