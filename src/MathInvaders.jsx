@@ -1,87 +1,37 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Ufo from "./Ufo";
+import Hud from "./Hud";
 
-const COLUMNS = 5;
-const WIDTH = 450;
-const HEIGHT = 800;
-const COL_WIDTH = WIDTH / COLUMNS;
-const SHIP_Y = HEIGHT - 110;
-const SPAWN_Y = -20; // Constant for new UFO starting position
-const NUMBER_OF_CORRECT_IN_SEQUENCE_ANSWERS_TO_GAIN_LIFE = 4;
-const NUMBER_OF_CORRECT_TO_WIN = 100;
+import { playSound, createProblem } from "./utils";
+import { col } from "framer-motion/client";
 
-const MAX_LIVES = 8;
-const STARTING_LIVES = 4;
-
-const LEVEL_NAMES = [
-  "الأول",
-  "الثاني",
-  "الثالث",
-  "الرابع",
-  "الخامس",
-  "السادس",
-  "السابع",
-  "الثامن",
-  "التاسع",
-  "العاشر",
-];
-// import.meta.env.BASE_URL will be "./math/space/" based on your config
-const baseUrl = import.meta.env.BASE_URL;
+const {
+  INITIAL_COLUMNS,
+  WIDTH,
+  HEIGHT,
+  SHIP_Y,
+  SPAWN_Y,
+  NUMBER_OF_CORRECT_IN_SEQUENCE_ANSWERS_TO_GAIN_LIFE,
+  NUMBER_OF_CORRECT_TO_WIN,
+  MAX_LIVES,
+  STARTING_LIVES,
+  LEVEL_UP_THRESHOLD,
+  INITIAL_ATTACK_INTERVAL,
+  INITIAL_UFO_SPEED,
+  LEVEL_UP_ATTACK_INTERVAL_DECREMENT,
+  LEVEL_UP_UFO_SPEED_INCREMENT,
+  MAX_NUMBER_OF_COLUMNS,
+} = __GAME__CONFIG__;
 
 // Define these outside the component or inside a useMemo to prevent re-creation
-const playSuccessSound = () => {
-  const audio = new Audio(`${baseUrl}/sounds/correct.mp3`); // Path to your file
-  audio.volume = 0.5;
-  audio.play().catch((e) => console.log("Audio play blocked by browser"));
-};
-
-const playLifeSound = () => {
-  const audio = new Audio(`${baseUrl}/sounds/life.mp3`); // Path to your file
-  audio.volume = 0.5;
-  audio.play().catch((e) => console.log("Audio play blocked by browser"));
-};
-
-const playErrorSound = () => {
-  const audio = new Audio(`${baseUrl}/sounds/wrong.mp3`);
-  audio.volume = 0.4;
-  audio.play().catch((e) => console.log("Audio play blocked by browser"));
-};
-
-function convertToArabicNumerals(number) {
-  const standardDigits = "0123456789";
-  const arabicDigits = "٠١٢٣٤٥٦٧٨٩";
-
-  return number.toString().replace(/[0-9]/g, (digit) => {
-    return arabicDigits[standardDigits.indexOf(digit)];
-  });
-}
-
-// --- GAME CONFIGURATION ---
-const LEVEL_UP_THRESHOLD = 20;
-const STARTING_OPERAND_MIN = 1;
-const STARTING_OPERAND_MAX = 5;
-const MAX_INCREMENT_PER_LEVEL = 2;
-const MIN_INCREMENT_PER_LEVEL = 1;
-
-const createProblem = (level) => {
-  const minVal = STARTING_OPERAND_MIN + (level - 1) * MIN_INCREMENT_PER_LEVEL;
-  const maxVal = STARTING_OPERAND_MAX + (level - 1) * MAX_INCREMENT_PER_LEVEL;
-
-  // Standard random range formula: Math.random() * (max - min + 1) + min
-  const n1 = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-  const n2 = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-
-  const a1 = convertToArabicNumerals(n1);
-  const a2 = convertToArabicNumerals(n2);
-
-  return {
-    q: `${a1} × ${a2}`,
-    a: n1 * n2,
-    id: Math.random(),
-  };
-};
 
 export default function MathInvadersSafeShuffle() {
+  const [attackInterval, setAttackInterval] = useState(INITIAL_ATTACK_INTERVAL);
+  const [ufoSpeed, setUfoSpeed] = useState(INITIAL_UFO_SPEED);
+  const [columns, setColumns] = useState(INITIAL_COLUMNS);
+  const colWidth = WIDTH / columns;
+
   const [problems, setProblems] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [ufos, setUfos] = useState([]);
@@ -99,24 +49,36 @@ export default function MathInvadersSafeShuffle() {
   const [isGameOver, setIsGameOver] = useState(false);
   const [showLevelUp, setShowLevelUp] = useState(false);
 
+  const resetUfos = ({ props = null }) => {
+    const p = props ?? problems;
+    const cols = Math.min(p.length, MAX_NUMBER_OF_COLUMNS);
+
+    console.log(
+      `Resetting UFOs for columns: ${cols}, problems length: ${p.length}`
+    );
+
+    setUfos(
+      p.slice(0, cols).map((prob, i) => ({
+        id: prob.id,
+        col: i,
+        val: prob.a,
+        spriteIndex: Math.floor(Math.random() * 8) + 1,
+        y: -15,
+      }))
+    );
+  };
+
   const initGame = (currentLevel = 1) => {
-    const initialProblems = Array.from({ length: COLUMNS }).map(() =>
+    const initialProblems = Array.from({ length: columns }).map(() =>
       createProblem(currentLevel)
     );
     setLives(STARTING_LIVES);
     setCorrectInSequence(0);
 
     setProblems(initialProblems);
-    setActiveId(initialProblems[Math.floor(Math.random() * COLUMNS)].id);
-    setUfos(
-      initialProblems.map((prob, i) => ({
-        id: prob.id,
-        col: i,
-        val: prob.a,
-        spriteIndex: Math.floor(Math.random() * 8) + 1,
-        y: 50,
-      }))
-    );
+    setActiveId(initialProblems[Math.floor(Math.random() * columns)].id);
+    resetUfos({ props: initialProblems, columns });
+
     if (currentLevel === 1) setScore(0);
     setLevel(currentLevel);
     setIsGameOver(false);
@@ -135,7 +97,20 @@ export default function MathInvadersSafeShuffle() {
   useEffect(() => {
     const calculatedLevel = Math.floor(score / LEVEL_UP_THRESHOLD) + 1;
     if (calculatedLevel > level) {
+      setColumns((prev) => Math.min(MAX_NUMBER_OF_COLUMNS, prev + 1));
+
       setLevel(calculatedLevel);
+
+      setAttackInterval((prev) =>
+        Math.max(500, prev - LEVEL_UP_ATTACK_INTERVAL_DECREMENT)
+      );
+      setUfoSpeed((prev) => prev + LEVEL_UP_UFO_SPEED_INCREMENT);
+
+      const newProps = [...problems, createProblem(calculatedLevel)];
+
+      setProblems(newProps);
+      resetUfos({ props: newProps, columns: columns + 1 });
+      playSound("levelup");
       setShowLevelUp(true);
       setTimeout(() => setShowLevelUp(false), 2000);
     }
@@ -145,11 +120,11 @@ export default function MathInvadersSafeShuffle() {
     if (isFiring || isGameOver) return;
     const interval = setInterval(() => {
       setUfos((prev) => {
-        const nextUfos = prev.map((u) => ({ ...u, y: u.y + 40 }));
+        const nextUfos = prev.map((u) => ({ ...u, y: u.y + ufoSpeed }));
         if (nextUfos.some((u) => u.y >= SHIP_Y)) setIsGameOver(true);
         return nextUfos;
       });
-    }, 2000);
+    }, attackInterval);
     return () => clearInterval(interval);
   }, [isFiring, isGameOver]);
 
@@ -159,7 +134,7 @@ export default function MathInvadersSafeShuffle() {
       if (isFiring || isGameOver) return;
       if (e.key === "ArrowLeft") setShipCol((p) => Math.max(0, p - 1));
       if (e.key === "ArrowRight")
-        setShipCol((p) => Math.min(COLUMNS - 1, p + 1));
+        setShipCol((p) => Math.min(columns - 1, p + 1));
       if (e.key === " ") handleInteraction(shipCol, true);
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -196,9 +171,9 @@ export default function MathInvadersSafeShuffle() {
         if (lives < MAX_LIVES) {
           setLives((l) => l + 1);
         }
-        playLifeSound();
+        playSound("life");
       } else {
-        playSuccessSound();
+        playSound("correct");
       }
       setCorrectInSequence(newCorrectInSequence);
 
@@ -259,7 +234,7 @@ export default function MathInvadersSafeShuffle() {
     } else {
       // WRONG ANSWER
       setCorrectInSequence(0); // Reset correct-in-a-row counter
-      playErrorSound(); // <--- Trigger sound
+      playSound("wrong"); // <--- Trigger sound
 
       const newLives = lives - 1;
       setLives(newLives);
@@ -293,92 +268,19 @@ export default function MathInvadersSafeShuffle() {
       }}
     >
       {/* HUD: Score, Level, and Lives */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          padding: "0 10px",
-          marginBottom: "10px",
-          fontFamily: "monospace",
-        }}
-      >
-        <div style={{ color: "white" }}>
-          {" "}
-          إجابات صحيحة {convertToArabicNumerals(score)}
-        </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            flexDirection: "column",
-          }}
-        >
-          <div style={{ color: "#e94560" }}>
-            {Array.from({ length: MAX_LIVES }).map((_, i) => (
-              <span key={i} style={{ opacity: i < lives ? 1 : 0.3 }}>
-                ❤️
-              </span>
-            ))}
-          </div>
-          <div>
-            {Array.from({
-              length: NUMBER_OF_CORRECT_IN_SEQUENCE_ANSWERS_TO_GAIN_LIFE,
-            }).map((_, i) => (
-              // bar indicators for correct answers in sequence
-              <span
-                key={i}
-                style={{
-                  display: "inline-block",
-                  width: "10px",
-                  height: "6px",
-                  margin: "0 2px",
-                  background:
-                    i < correctInSequence
-                      ? "#f9d71c"
-                      : "rgba(249, 215, 28, 0.3)",
-                  borderRadius: "2px",
-                }}
-              ></span>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ color: "#4cc9f0" }}>
-          {" "}
-          المستوى {LEVEL_NAMES[level - 1]}
-        </div>
-      </div>
-
-      {/* <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: "100%",
-          padding: "0 10px",
-          marginBottom: "10px",
-        }}
-      >
-        <div
-          style={{
-            color: "#4cc9f0",
-            fontSize: "18px",
-            fontFamily: "monospace",
-          }}
-        >
-          LVL: {level}
-        </div>
-        <div
-          style={{ color: "white", fontSize: "18px", fontFamily: "monospace" }}
-        >
-          SCORE: {score}
-        </div>
-      </div> */}
+      <Hud
+        score={score}
+        lives={lives}
+        correctInSequence={correctInSequence}
+        level={level}
+        columns={columns}
+        colWidth={colWidth}
+        propLength={problems.length}
+      />
 
       <div style={{ position: "relative", width: "100%" }}>
         <motion.svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-          width="100%"
           height="auto"
           animate={isShaking ? { x: [-5, 5, -5, 5, 0] } : {}}
           style={{
@@ -389,12 +291,12 @@ export default function MathInvadersSafeShuffle() {
           }}
         >
           {!isGameOver &&
-            Array.from({ length: COLUMNS }).map((_, i) => (
+            Array.from({ length: columns }).map((_, i) => (
               <rect
                 key={`z-${i}`}
-                x={i * COL_WIDTH}
+                x={i * colWidth}
                 y={0}
-                width={COL_WIDTH}
+                width={colWidth}
                 height={HEIGHT}
                 fill="transparent"
                 onPointerDown={() => handleInteraction(i, false)}
@@ -403,63 +305,19 @@ export default function MathInvadersSafeShuffle() {
 
           <AnimatePresence>
             {ufos.map((ufo) => (
-              <motion.g
+              <Ufo
                 key={ufo.id}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  y: ufo.y,
-                  x: wrongHitId === ufo.id ? [-8, 8, -8, 8, 0] : 0,
-                }}
-                exit={{
-                  opacity: 0,
-                  scale: 4,
-                  filter: "brightness(3) blur(2px)",
-                }}
-                transition={{
-                  y: { type: "spring", stiffness: 100 },
-                  x: { duration: 0.3 },
-                }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  handleInteraction(ufo.col, true);
-                }}
-                style={{ cursor: isGameOver ? "default" : "pointer" }}
-              >
-                <image
-                  href={`${baseUrl}/images/${ufo.spriteIndex}.png`}
-                  x={ufo.col * COL_WIDTH + 9}
-                  y={-60}
-                  width="70"
-                  height="40"
-                />
-                <ellipse
-                  cx={ufo.col * COL_WIDTH + COL_WIDTH / 2}
-                  cy={0}
-                  rx="35"
-                  ry="14"
-                  fill="#ffffffff"
-                  stroke="#000"
-                />
-                <text
-                  x={ufo.col * COL_WIDTH + COL_WIDTH / 2}
-                  y={7}
-                  textAnchor="middle"
-                  fill="black"
-                  fontSize="20"
-                  fontWeight="900"
-                  style={{ pointerEvents: "none" }}
-                >
-                  {convertToArabicNumerals(ufo.val)}
-                </text>
-              </motion.g>
+                ufo={ufo}
+                isShaking={wrongHitId === ufo.id}
+                isGameOver={isGameOver}
+                colWidth={colWidth}
+              />
             ))}
           </AnimatePresence>
 
           {isFiring && (
             <motion.rect
-              x={firedFromCol * COL_WIDTH + COL_WIDTH / 2 - 2}
+              x={firedFromCol * colWidth + colWidth / 2 - 2}
               initial={{ y: HEIGHT - 110 }}
               animate={{
                 y: bulletDir === "up" ? currentTargetY : HEIGHT - 110,
@@ -478,13 +336,13 @@ export default function MathInvadersSafeShuffle() {
           )}
 
           <motion.g
-            animate={{ x: shipCol * COL_WIDTH }}
+            animate={{ x: shipCol * colWidth }}
             transition={{ type: "spring", bounce: 0.1 }}
           >
             <rect
               x={5}
               y={HEIGHT - 90}
-              width={COL_WIDTH - 10}
+              width={colWidth - 10}
               height="50"
               rx="8"
               fill="#4cc9f0"
@@ -492,7 +350,7 @@ export default function MathInvadersSafeShuffle() {
               strokeWidth="2"
             />
             <rect
-              x={COL_WIDTH / 2 - 8}
+              x={colWidth / 2 - 8}
               y={HEIGHT - 105}
               width={16}
               height="20"
@@ -500,7 +358,7 @@ export default function MathInvadersSafeShuffle() {
               fill="#4cc9f0"
             />
             <text
-              x={COL_WIDTH / 2}
+              x={colWidth / 2}
               y={HEIGHT - 58}
               textAnchor="middle"
               fill="#1a1a2e"
@@ -512,7 +370,7 @@ export default function MathInvadersSafeShuffle() {
             </text>
             {!isFiring && !isGameOver && (
               <circle
-                cx={COL_WIDTH / 2}
+                cx={colWidth / 2}
                 cy={HEIGHT - 115}
                 r="4"
                 fill="#f9d71c"
